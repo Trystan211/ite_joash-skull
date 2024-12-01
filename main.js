@@ -10,7 +10,7 @@ scene.fog = new THREE.Fog(0xffffff, 10, 50); // Add fog for depth effect
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(0xffffff); // Set background color to white
+renderer.setClearColor(0x000000); // Set background color to white
 document.body.appendChild(renderer.domElement);
 
 // Camera Setup
@@ -23,7 +23,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 
 // Dynamic Light
 const dynamicLight = new THREE.PointLight(0xffffff, 2, 50);
-dynamicLight.position.set(0, 40, 0); // Initial light position
+dynamicLight.position.set(0, 80, 0); // Initial light position
 scene.add(dynamicLight);
 
 // Ocean Geometry
