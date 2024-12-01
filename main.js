@@ -86,7 +86,7 @@ loader.load(
         box.getSize(size);
         console.log('Skeleton dimensions:', size);
 
-        skeleton.scale.set(50, 50, 50); // Adjust scale to fit the scene
+        skeleton.scale.set(10, 10, 10); // Adjust scale to fit the scene
     },
     undefined,
     (error) => {
