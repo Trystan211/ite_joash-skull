@@ -10,7 +10,7 @@ scene.fog = new THREE.Fog(0xffffff, 10, 50); // Add fog for depth effect
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(0x000000); // Set background color to white
+renderer.setClearColor(0xffffff); // Set background color to white
 document.body.appendChild(renderer.domElement);
 
 // Camera Setup
