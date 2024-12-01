@@ -77,7 +77,7 @@ loader.load(
     'https://trystan211.github.io/ite_joash-skull/low_poly_skull.glb', // Replace with the actual skeleton model URL
     (gltf) => {
         skeleton = gltf.scene;
-        skeleton.position.set(1, -2, 1); // Position the skeleton
+        skeleton.position.set(1, -4, 1); // Position the skeleton
         scene.add(skeleton);
 
         // Check and scale skeleton if necessary
