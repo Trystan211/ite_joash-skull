@@ -23,7 +23,7 @@ const controls = new OrbitControls(camera, renderer.domElement);
 
 // Dynamic Light
 const dynamicLight = new THREE.PointLight(0xffffff, 4, 50);
-dynamicLight.position.set(15, 10, 15); // Initial light position
+dynamicLight.position.set(25, 10, 25); // Initial light position
 scene.add(dynamicLight);
 
 // Ocean Geometry
