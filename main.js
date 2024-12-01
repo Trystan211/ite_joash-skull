@@ -1,226 +1,169 @@
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.152.0/build/three.module.js';
-import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/controls/OrbitControls.js';
-import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.152.0/examples/jsm/loaders/GLTFLoader.js';
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js";
+import { OrbitControls } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/controls/OrbitControls.js";
+import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/jsm/loaders/GLTFLoader.js";
 
 // Scene Setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x8b4513); // Dark yellow-orange
-scene.fog = new THREE.Fog(0x705d3d, 5, 40); // Yellowish fog, darker atmosphere
+scene.fog = new THREE.Fog(0x000000, 10, 50); // Add fog for depth effect
 
-const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(20, 10, 30);
-
+// Renderer Setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0x000000);
 document.body.appendChild(renderer.domElement);
 
-// OrbitControls
+// Camera Setup
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.set(0, 5, 15);
+scene.add(camera);
+
+// Orbit Controls
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.25;
 
-// Sand Floor
-const sand = new THREE.Mesh(
-  new THREE.PlaneGeometry(60, 60),
-  new THREE.MeshStandardMaterial({ color: 0xd2b48c }) // Sandy color
-);
-sand.rotation.x = -Math.PI / 2;
-scene.add(sand);
+// Dynamic Light
+const dynamicLight = new THREE.PointLight(0xffffff, 2, 50);
+dynamicLight.position.set(0, 10, 0); // Initial light position
+scene.add(dynamicLight);
 
-// Lights
-const ambientLight = new THREE.AmbientLight(0xffcc88, 0.4);
-scene.add(ambientLight);
+// Ocean Geometry
+const geometry = new THREE.PlaneGeometry(75, 75, 300, 300); // Increased detail
+geometry.rotateX(-Math.PI / 2);
 
-const sunlight = new THREE.DirectionalLight(0xffaa66, 0.8);
-sunlight.position.set(10, 20, -5);
-scene.add(sunlight);
+// Ocean Shader Material
+const oceanMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        time: { value: 0 },
+        waveHeight: { value: 1.5 }, // Increased wave height
+        waveFrequency: { value: 0.5 }, // Lowered frequency for larger waves
+        deepColor: { value: new THREE.Color(0x00ff00) }, // Acid green deep color
+        shallowColor: { value: new THREE.Color(0x66ff66) }, // Acid green shallow color
+    },
+    vertexShader: `
+        uniform float time;
+        uniform float waveHeight;
+        uniform float waveFrequency;
+        varying vec2 vUv;
 
-// Load Mjolnir Model
+        void main() {
+            vUv = uv;
+            vec3 pos = position;
+            pos.y += sin(pos.x * waveFrequency + time) * waveHeight * 0.8;
+            pos.y += cos(pos.z * waveFrequency + time * 1.5) * waveHeight * 0.6;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+    `,
+    fragmentShader: `
+        uniform vec3 deepColor;
+        uniform vec3 shallowColor;
+        varying vec2 vUv;
+
+        void main() {
+            vec3 color = mix(shallowColor, deepColor, vUv.y);
+            gl_FragColor = vec4(color, 1.0);
+        }
+    `,
+});
+
+// Add Ocean Mesh
+const ocean = new THREE.Mesh(geometry, oceanMaterial);
+scene.add(ocean);
+
+// Load Skeleton Model
 const loader = new GLTFLoader();
-let mjolnirPosition = { x: 0, y: -0.5, z: 0 };
+let skeleton = null;
 
 loader.load(
-  'https://trystan211.github.io/ite_joash/mjolnir_thors_hammer.glb',
-  (gltf) => {
-    const mjolnir = gltf.scene;
-    mjolnir.position.set(mjolnirPosition.x, mjolnirPosition.y, mjolnirPosition.z);
-    mjolnir.scale.set(0.01, 0.01, 0.01); // Scale appropriately for the scene
-    scene.add(mjolnir);
-  },
-  undefined,
-  (error) => console.error('Error loading Mjolnir model:', error)
+    'https://example.com/skeleton_model.glb', // Replace with actual skeleton model URL
+    (gltf) => {
+        skeleton = gltf.scene;
+        skeleton.position.set(1, 2.5, 1); // Position the skeleton
+        scene.add(skeleton);
+
+        // Check if the skeleton is huge right after loading
+        const box = new THREE.Box3().setFromObject(skeleton);
+        const size = new THREE.Vector3();
+        box.getSize(size);
+        console.log('Skeleton dimensions:', size);
+
+        // Apply scale
+        skeleton.scale.set(0.05, 0.05, 0.05);
+    },
+    undefined,
+    (error) => {
+        console.error("Error loading the skeleton model:", error);
+    }
 );
 
-// Small Black Stones
-const stoneMaterial = new THREE.MeshStandardMaterial({ color: 0x333333 });
+// Rain Geometry
+const rainCount = 10000;
+const rainGeometry = new THREE.BufferGeometry();
+const rainPositions = [];
+const rainVelocities = [];
 
-for (let i = 0; i < 50; i++) {
-  const x = Math.random() * 60 - 30;
-  const z = Math.random() * 60 - 30;
-
-  const stone = new THREE.Mesh(
-    new THREE.SphereGeometry(Math.random() * 0.5, 16, 16),
-    stoneMaterial
-  );
-  stone.position.set(x, 0.2, z);
-  stone.castShadow = true; // Enable shadows for stones
-  scene.add(stone);
+for (let i = 0; i < rainCount; i++) {
+    const x = (Math.random() - 0.5) * 100;
+    const y = Math.random() * 50;
+    const z = (Math.random() - 0.5) * 100;
+    rainPositions.push(x, y, z);
+    rainVelocities.push(-0.2 - Math.random() * 0.5); // Rain falls downward
 }
 
-// Tall Pointy Rocks with Raycasting Support
-const raycaster = new THREE.Raycaster();
-const mouse = new THREE.Vector2();
-const tallRocks = []; // Store references to the pointy rocks
+rainGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rainPositions, 3));
 
-const rockMaterial = new THREE.MeshStandardMaterial({
-  color: 0x666666,
-  roughness: 0.9,
-  metalness: 0.1
+// Rain Material
+const rainMaterial = new THREE.PointsMaterial({
+    color: 0x00ff00, // Acid green color
+    size: 0.2,
+    transparent: true,
+    opacity: 0.8,
 });
 
-for (let i = 0; i < 10; i++) {
-  const x = Math.random() * 50 - 25;
-  const z = Math.random() * 50 - 25;
-
-  const tallRock = new THREE.Mesh(
-    new THREE.ConeGeometry(Math.random() * 1 + 1, Math.random() * 10 + 5, 8),
-    rockMaterial.clone() // Clone material for independent control
-  );
-  tallRock.position.set(x, Math.random() * 2, z);
-  tallRock.castShadow = true;
-  tallRocks.push(tallRock);
-  scene.add(tallRock);
-}
-
-// Mouse Click Handler
-const handleClick = (event) => {
-  // Normalize mouse position
-  mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-  // Update the raycaster
-  raycaster.setFromCamera(mouse, camera);
-
-  // Check for intersections
-  const intersects = raycaster.intersectObjects(tallRocks);
-
-  if (intersects.length > 0) {
-    const selectedRock = intersects[0].object;
-
-    // Store the original color and scale
-    const originalColor = selectedRock.material.color.clone();
-    const originalScale = selectedRock.scale.clone();
-
-    // Change color and size
-    selectedRock.material.color.set(0x444444); // Darker gray
-    selectedRock.scale.multiplyScalar(1.2); // Slightly larger
-
-    // Revert after 2 seconds
-    setTimeout(() => {
-      selectedRock.material.color.copy(originalColor);
-      selectedRock.scale.copy(originalScale);
-    }, 2000);
-  }
-};
-
-// Add Event Listeners
-window.addEventListener('click', handleClick);
-
-// Yellow-Orange Orbiting Particles
-const particleCount = 6000; // Number of particles
-const particlesGeometry = new THREE.BufferGeometry();
-const positions = [];
-const velocities = [];
-
-for (let i = 0; i < particleCount; i++) {
-  const angle = Math.random() * Math.PI * 2;
-  const distance = Math.random() * 45 + 5; // Adjusted range 5 to 50
-  const y = Math.random() * 12 + 2;
-
-  positions.push(
-    Math.cos(angle) * distance + mjolnirPosition.x,
-    y,
-    Math.sin(angle) * distance + mjolnirPosition.z
-  );
-  velocities.push(0.002 * (Math.random() > 0.5 ? 1 : -1)); // Random angular velocity
-}
-
-particlesGeometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-particlesGeometry.setAttribute('velocity', new THREE.Float32BufferAttribute(velocities, 1));
-
-const particlesMaterial = new THREE.PointsMaterial({
-  color: 0xffaa33,
-  size: 0.25,
-  transparent: true,
-  opacity: 0.8
-});
-
-const particles = new THREE.Points(particlesGeometry, particlesMaterial);
-scene.add(particles);
-
-// Reduced Flickering Lights around Mjolnir
-const flickeringLights = [];
-const lightCount = 5; // Reduced to half
-const lightRadius = 10;
-
-for (let i = 0; i < lightCount; i++) {
-  const angle = (i / lightCount) * Math.PI * 2;
-  const x = mjolnirPosition.x + Math.cos(angle) * lightRadius;
-  const z = mjolnirPosition.z + Math.sin(angle) * lightRadius;
-  const y = mjolnirPosition.y + 2 + Math.random() * 2;
-
-  const light = new THREE.PointLight(0x33ccff, 0, 20); // Lightning blue
-  light.position.set(x, y, z);
-  scene.add(light);
-  flickeringLights.push(light);
-}
+// Add Rain Particles
+const rain = new THREE.Points(rainGeometry, rainMaterial);
+scene.add(rain);
 
 // Animation Loop
 const clock = new THREE.Clock();
+function animate() {
+    const elapsedTime = clock.getElapsedTime();
 
-const animate = () => {
-  // Update particles
-  const positions = particlesGeometry.attributes.position.array;
-  const velocities = particlesGeometry.attributes.velocity.array;
+    // Update Ocean
+    oceanMaterial.uniforms.time.value = elapsedTime;
 
-  for (let i = 0; i < particleCount; i++) {
-    const xIndex = i * 3;
-    const zIndex = xIndex + 2;
+    // Update Rain
+    const positions = rain.geometry.attributes.position.array;
+    for (let i = 0; i < rainCount; i++) {
+        positions[i * 3 + 1] += rainVelocities[i]; // Y-axis movement (falling)
+        if (positions[i * 3 + 1] < 0) {
+            positions[i * 3 + 1] = 50; // Reset rain drop
+        }
+    }
+    rain.geometry.attributes.position.needsUpdate = true;
 
-    const x = positions[xIndex] - mjolnirPosition.x;
-    const z = positions[zIndex] - mjolnirPosition.z;
-
-    const angle = Math.atan2(z, x) + velocities[i];
-    const distance = Math.sqrt(x * x + z * z);
-
-    positions[xIndex] = Math.cos(angle) * distance + mjolnirPosition.x;
-    positions[zIndex] = Math.sin(angle) * distance + mjolnirPosition.z;
-  }
-  particlesGeometry.attributes.position.needsUpdate = true;
-
-  // Flickering light effect with dynamic positions
-  flickeringLights.forEach((light) => {
-    light.intensity = Math.random() * 8 + 4;
-
-    const angle = Math.random() * Math.PI * 2;
-    const radius = lightRadius * Math.random();
-    light.position.set(
-      mjolnirPosition.x + Math.cos(angle) * radius,
-      mjolnirPosition.y + 2 + Math.random() * 2,
-      mjolnirPosition.z + Math.sin(angle) * radius
+    // Move Light Source
+    dynamicLight.position.set(
+        10 * Math.sin(elapsedTime * 0.5),
+        10,
+        10 * Math.cos(elapsedTime * 0.5)
     );
-  });
 
-  controls.update();
-  renderer.render(scene, camera);
-  requestAnimationFrame(animate);
-};
+    // Move the Skeleton with the Waves
+    if (skeleton) {
+        skeleton.position.x = Math.sin(elapsedTime * 0.5) * 5; // Skeleton moves along the X-axis with the waves
+        skeleton.position.z = Math.cos(elapsedTime * 0.5) * 5; // Skeleton moves along the Z-axis with the waves
+    }
+
+    // Render Scene
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+}
 
 animate();
 
-// Handle Window Resize
-window.addEventListener('resize', () => {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
+// Handle Resizing
+window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
 });
