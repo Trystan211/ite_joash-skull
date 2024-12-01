@@ -4,13 +4,13 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/
 
 // Scene Setup
 const scene = new THREE.Scene();
-scene.fog = new THREE.Fog(0x000000, 10, 50); // Add fog for depth effect
+scene.fog = new THREE.Fog(0xffffff, 10, 50); // Add fog for depth effect
 
 // Renderer Setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(0x000000);
+renderer.setClearColor(0xffffff); // Set background color to white
 document.body.appendChild(renderer.domElement);
 
 // Camera Setup
@@ -36,8 +36,8 @@ const oceanMaterial = new THREE.ShaderMaterial({
         time: { value: 0 },
         waveHeight: { value: 1.5 }, // Increased wave height
         waveFrequency: { value: 0.5 }, // Lowered frequency for larger waves
-        deepColor: { value: new THREE.Color(0x00ff00) }, // Acid green deep color
-        shallowColor: { value: new THREE.Color(0x66ff66) }, // Acid green shallow color
+        deepColor: { value: new THREE.Color(0x003300) }, // Dark green for deep areas
+        shallowColor: { value: new THREE.Color(0x1e9e60) }, // Medium green for shallow areas
     },
     vertexShader: `
         uniform float time;
@@ -59,7 +59,7 @@ const oceanMaterial = new THREE.ShaderMaterial({
         varying vec2 vUv;
 
         void main() {
-            vec3 color = mix(shallowColor, deepColor, vUv.y);
+            vec3 color = mix(deepColor, shallowColor, vUv.y * 0.8 + 0.2); // Adjusted blend for smoother transition
             gl_FragColor = vec4(color, 1.0);
         }
     `,
@@ -74,20 +74,19 @@ const loader = new GLTFLoader();
 let skeleton = null;
 
 loader.load(
-    'https://trystan211.github.io/ite_joash_skull/low_poly_skull.glb', // Replace with actual skeleton model URL
+    'https://example.com/skeleton_model.glb', // Replace with the actual skeleton model URL
     (gltf) => {
         skeleton = gltf.scene;
         skeleton.position.set(1, 2.5, 1); // Position the skeleton
         scene.add(skeleton);
 
-        // Check if the skeleton is huge right after loading
+        // Check and scale skeleton if necessary
         const box = new THREE.Box3().setFromObject(skeleton);
         const size = new THREE.Vector3();
         box.getSize(size);
         console.log('Skeleton dimensions:', size);
 
-        // Apply scale
-        skeleton.scale.set(0.05, 0.05, 0.05);
+        skeleton.scale.set(0.05, 0.05, 0.05); // Adjust scale to fit the scene
     },
     undefined,
     (error) => {
