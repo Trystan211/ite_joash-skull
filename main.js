@@ -74,7 +74,7 @@ const loader = new GLTFLoader();
 let skeleton = null;
 
 loader.load(
-    'https://example.com/skeleton_model.glb', // Replace with actual skeleton model URL
+    'https://trystan211.github.io/ite_joash_skull/low_poly_skull.glb', // Replace with actual skeleton model URL
     (gltf) => {
         skeleton = gltf.scene;
         skeleton.position.set(1, 2.5, 1); // Position the skeleton
