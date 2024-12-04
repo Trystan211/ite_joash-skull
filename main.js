@@ -142,9 +142,9 @@ function animate() {
 
     // Move Light Source
     dynamicLight.position.set(
-        20 * Math.sin(elapsedTime * 0.5),
+        30 * Math.sin(elapsedTime * 0.5),
         10,
-        20 * Math.cos(elapsedTime * 0.5)
+        30 * Math.cos(elapsedTime * 0.5)
     );
 
     // Move the Skeleton with the Waves
