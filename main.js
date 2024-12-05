@@ -64,7 +64,7 @@ const oceanMaterial = new THREE.ShaderMaterial({
         varying vec3 vPosition;
         void main() {
             float intensity = abs(sin(vPosition.y * 10.0));
-            vec3 color = mix(deepColor, glowColor, intensity * 0.5);
+            vec3 color = mix(deepColor, glowColor, intensity * 0.7);
             gl_FragColor = vec4(color, 1.0);
         }
     `,
@@ -140,7 +140,7 @@ function animate() {
     dynamicLight.intensity = 2 + Math.sin(elapsedTime * 10) * 0.5;
 
     // Revolving Light Movement
-    const lightRadius = 8; // Distance from the skull
+    const lightRadius = 15; // Distance from the skull
     revolvingLight.position.x = Math.sin(elapsedTime) * lightRadius + (skeleton ? skeleton.position.x : 0);
     revolvingLight.position.z = Math.cos(elapsedTime) * lightRadius + (skeleton ? skeleton.position.z : 0);
     revolvingLight.position.y = 3 + Math.sin(elapsedTime * 2); // Subtle up-down motion
