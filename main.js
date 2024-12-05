@@ -26,6 +26,11 @@ const dynamicLight = new THREE.PointLight(0x00ff44, 2, 50); // Eerie green light
 dynamicLight.position.set(0, 10, 0);
 scene.add(dynamicLight);
 
+// Revolving White Light
+const revolvingLight = new THREE.PointLight(0xffffff, 1, 30); // White light
+revolvingLight.position.set(0, 5, 0); // Initial position
+scene.add(revolvingLight);
+
 // Ocean Geometry
 const geometry = new THREE.PlaneGeometry(75, 75, 300, 300);
 geometry.rotateX(-Math.PI / 2);
@@ -133,6 +138,12 @@ function animate() {
 
     // Flickering Light
     dynamicLight.intensity = 2 + Math.sin(elapsedTime * 10) * 0.5;
+
+    // Revolving Light Movement
+    const lightRadius = 8; // Distance from the skull
+    revolvingLight.position.x = Math.sin(elapsedTime) * lightRadius + (skeleton ? skeleton.position.x : 0);
+    revolvingLight.position.z = Math.cos(elapsedTime) * lightRadius + (skeleton ? skeleton.position.z : 0);
+    revolvingLight.position.y = 3 + Math.sin(elapsedTime * 2); // Subtle up-down motion
 
     // Move Skeleton
     if (skeleton) {
