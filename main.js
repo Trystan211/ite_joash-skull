@@ -4,13 +4,13 @@ import { GLTFLoader } from "https://cdn.jsdelivr.net/npm/three@0.152.2/examples/
 
 // Scene Setup
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000011); // Dark blue for night sky
+scene.background = new THREE.Color(0x0a0a1a); // Deep dark blue for spookiness
+scene.fog = new THREE.FogExp2(0x050505, 0.015); // Fog for a misty atmosphere
 
 // Renderer Setup
 const renderer = new THREE.WebGLRenderer({ antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setClearColor(0x000000); // Set background color to white
 document.body.appendChild(renderer.domElement);
 
 // Camera Setup
@@ -21,77 +21,68 @@ scene.add(camera);
 // Orbit Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 
-// Dynamic Light
-const dynamicLight = new THREE.PointLight(0xffffff, 4, 50);
-dynamicLight.position.set(50, 10, 50); // Initial light position
+// Dynamic Flickering Light
+const dynamicLight = new THREE.PointLight(0x00ff44, 2, 50); // Eerie green light
+dynamicLight.position.set(0, 10, 0);
 scene.add(dynamicLight);
 
 // Ocean Geometry
-const geometry = new THREE.PlaneGeometry(75, 75, 300, 300); // Increased detail
+const geometry = new THREE.PlaneGeometry(75, 75, 300, 300);
 geometry.rotateX(-Math.PI / 2);
 
-// Ocean Shader Material
+// Gooey Acid Shader Material
 const oceanMaterial = new THREE.ShaderMaterial({
     uniforms: {
         time: { value: 0 },
-        waveHeight: { value: 1.5 }, // Increased wave height
-        waveFrequency: { value: 0.5 }, // Lowered frequency for larger waves
-        deepColor: { value: new THREE.Color(0x003300) }, // Dark green for deep areas
-        shallowColor: { value: new THREE.Color(0x1e9e60) }, // Medium green for shallow areas
+        waveHeight: { value: 1.2 }, // Adjusted for gooey texture
+        waveFrequency: { value: 1.0 },
+        deepColor: { value: new THREE.Color(0x002200) }, // Dark acid green
+        glowColor: { value: new THREE.Color(0x00ff00) }, // Bright acid green
     },
     vertexShader: `
         uniform float time;
         uniform float waveHeight;
         uniform float waveFrequency;
-        varying vec2 vUv;
-
+        varying vec3 vPosition;
         void main() {
-            vUv = uv;
+            vPosition = position;
             vec3 pos = position;
             pos.y += sin(pos.x * waveFrequency + time) * waveHeight * 0.8;
-            pos.y += cos(pos.z * waveFrequency + time * 1.5) * waveHeight * 0.6;
+            pos.y += cos(pos.z * waveFrequency + time * 1.5) * waveHeight * 0.8;
+            pos.y += sin((pos.x + pos.z) * waveFrequency + time * 0.5) * waveHeight * 0.5;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
         }
     `,
     fragmentShader: `
         uniform vec3 deepColor;
-        uniform vec3 shallowColor;
-        varying vec2 vUv;
-
+        uniform vec3 glowColor;
+        varying vec3 vPosition;
         void main() {
-            vec3 color = mix(deepColor, shallowColor, vUv.y * 0.8 + 0.2); // Adjusted blend for smoother transition
+            float intensity = abs(sin(vPosition.y * 10.0));
+            vec3 color = mix(deepColor, glowColor, intensity * 0.5);
             gl_FragColor = vec4(color, 1.0);
         }
     `,
+    transparent: true,
 });
 
-// Add Ocean Mesh
+// Add Gooey Ocean Mesh
 const ocean = new THREE.Mesh(geometry, oceanMaterial);
 scene.add(ocean);
 
 // Load Skeleton Model
 const loader = new GLTFLoader();
 let skeleton = null;
-
 loader.load(
-    'https://trystan211.github.io/ite_joash-skull/low_poly_skull.glb', // Replace with the actual skeleton model URL
+    'https://trystan211.github.io/ite_joash-skull/low_poly_skull.glb',
     (gltf) => {
         skeleton = gltf.scene;
-        skeleton.position.set(1, -4, 1); // Position the skeleton
+        skeleton.position.set(1, -3.5, 1);
         scene.add(skeleton);
-
-        // Check and scale skeleton if necessary
-        const box = new THREE.Box3().setFromObject(skeleton);
-        const size = new THREE.Vector3();
-        box.getSize(size);
-        console.log('Skeleton dimensions:', size);
-
-        skeleton.scale.set(6, 6, 6); // Adjust scale to fit the scene
+        skeleton.scale.set(6, 6, 6);
     },
     undefined,
-    (error) => {
-        console.error("Error loading the skeleton model:", error);
-    }
+    (error) => console.error("Error loading skeleton:", error)
 );
 
 // Rain Geometry
@@ -105,20 +96,20 @@ for (let i = 0; i < rainCount; i++) {
     const y = Math.random() * 50;
     const z = (Math.random() - 0.5) * 100;
     rainPositions.push(x, y, z);
-    rainVelocities.push(-0.2 - Math.random() * 0.5); // Rain falls downward
+    rainVelocities.push(-0.3 - Math.random() * 0.5);
 }
 
 rainGeometry.setAttribute("position", new THREE.Float32BufferAttribute(rainPositions, 3));
 
-// Rain Material
+// Acid Rain Material
 const rainMaterial = new THREE.PointsMaterial({
-    color: 0x00ff00, // Acid green color
-    size: 0.2,
+    color: 0x00ff44, // Neon acid green
+    size: 0.1,
     transparent: true,
-    opacity: 0.8,
+    opacity: 0.6,
 });
 
-// Add Rain Particles
+// Add Acid Rain Particles
 const rain = new THREE.Points(rainGeometry, rainMaterial);
 scene.add(rain);
 
@@ -133,24 +124,20 @@ function animate() {
     // Update Rain
     const positions = rain.geometry.attributes.position.array;
     for (let i = 0; i < rainCount; i++) {
-        positions[i * 3 + 1] += rainVelocities[i]; // Y-axis movement (falling)
+        positions[i * 3 + 1] += rainVelocities[i];
         if (positions[i * 3 + 1] < 0) {
-            positions[i * 3 + 1] = 50; // Reset rain drop
+            positions[i * 3 + 1] = 50;
         }
     }
     rain.geometry.attributes.position.needsUpdate = true;
 
-    // Move Light Source
-    dynamicLight.position.set(
-        40 * Math.sin(elapsedTime * 0.5),
-        10,
-        40 * Math.cos(elapsedTime * 0.5)
-    );
+    // Flickering Light
+    dynamicLight.intensity = 2 + Math.sin(elapsedTime * 10) * 0.5;
 
-    // Move the Skeleton with the Waves
+    // Move Skeleton
     if (skeleton) {
-        skeleton.position.x = Math.sin(elapsedTime * 0.5) * 5; // Skeleton moves along the X-axis with the waves
-        skeleton.position.z = Math.cos(elapsedTime * 0.5) * 5; // Skeleton moves along the Z-axis with the waves
+        skeleton.position.x = Math.sin(elapsedTime) * 2;
+        skeleton.position.z = Math.cos(elapsedTime) * 2;
     }
 
     // Render Scene
