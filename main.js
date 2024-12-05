@@ -41,8 +41,8 @@ const oceanMaterial = new THREE.ShaderMaterial({
         time: { value: 0 },
         waveHeight: { value: 1.2 }, // Adjusted for gooey texture
         waveFrequency: { value: 1.0 },
-        deepColor: { value: new THREE.Color(0x002200) }, // Dark acid green
-        glowColor: { value: new THREE.Color(0x00ff00) }, // Bright acid green
+        deepColor: { value: new THREE.Color(0x44aa44) }, // Dark acid green
+        glowColor: { value: new THREE.Color(0xccffcc) }, // Bright acid green
     },
     vertexShader: `
         uniform float time;
@@ -64,7 +64,7 @@ const oceanMaterial = new THREE.ShaderMaterial({
         varying vec3 vPosition;
         void main() {
             float intensity = abs(sin(vPosition.y * 10.0));
-            vec3 color = mix(deepColor, glowColor, intensity * 0.5);
+            vec3 color = mix(deepColor, glowColor, intensity * 0.7);
             gl_FragColor = vec4(color, 1.0);
         }
     `,
